@@ -1,6 +1,6 @@
 #pragma once
 
-enum ColorIndex { R = 0, G_1, G_2, B, NONE };
+const enum ColorIndex { R = 0, G_1, G_2, B, NONE };
 
 class BayerFilter {
 private:

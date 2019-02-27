@@ -3,38 +3,18 @@
 #include "rgb_to_yuv.h"
 #include "hdr.h"
 
-enum Program { RGB_TO_YUV, BAYER_FILTER, HDR_FILTER };
+const enum Program { RGB_TO_YUV, BAYER_FILTER, HDR_FILTER };
 
 std::vector<cv::Mat> inputs;
 std::vector<cv::Mat> outputs;
-
-const float mi = 0.5f;
-const float sigma = 0.2f;
-
-const cv::Vec3f getWk(cv::Vec3f Ik);
-const cv::Mat getR(std::vector<cv::Mat> source);
 
 BayerFilter *bayerFilter = nullptr;
 RGBToYUV *rgbToYuv = nullptr;
 HDR *hdr = nullptr;
 
-//int main() {
-//	images.push_back(cv::imread("img/hdr_c1.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/hdr_c3.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/s1_0.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/s1_1.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/s1_2.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/s1_3.png", CV_LOAD_IMAGE_COLOR));
-//	images.push_back(cv::imread("img/s1_4.png", CV_LOAD_IMAGE_COLOR));
-//
-//	cv::imshow("Result", getR(images));
-//	//cv::imshow("Result", images[1]);
-//	cv::waitKey(0);
-//}
-
 int main()
 {
-	switch (Program::HDR_FILTER)
+	switch (Program::RGB_TO_YUV)
 	{
 		case Program::RGB_TO_YUV: {
 			rgbToYuv = new RGBToYUV();
