@@ -1,143 +1,103 @@
 #include "pch.h"
-#include <iostream>
+#include "bayer_filter.h"
+#include "rgb_to_yuv.h"
+#include "hdr.h"
 
-enum ColorIndex { R = 0 , G_1, G_2, B, NONE };
+enum Program { RGB_TO_YUV, BAYER_FILTER, HDR_FILTER };
 
-ColorIndex getColorIndex(int col, int row);
-cv::Vec3f bayerFilter(cv::Mat bayer, int col, int row);
+std::vector<cv::Mat> inputs;
+std::vector<cv::Mat> outputs;
+
+const float mi = 0.5f;
+const float sigma = 0.2f;
+
+const cv::Vec3f getWk(cv::Vec3f Ik);
+const cv::Mat getR(std::vector<cv::Mat> source);
+
+BayerFilter *bayerFilter = nullptr;
+RGBToYUV *rgbToYuv = nullptr;
+HDR *hdr = nullptr;
+
+//int main() {
+//	images.push_back(cv::imread("img/hdr_c1.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/hdr_c3.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/s1_0.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/s1_1.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/s1_2.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/s1_3.png", CV_LOAD_IMAGE_COLOR));
+//	images.push_back(cv::imread("img/s1_4.png", CV_LOAD_IMAGE_COLOR));
+//
+//	cv::imshow("Result", getR(images));
+//	//cv::imshow("Result", images[1]);
+//	cv::waitKey(0);
+//}
 
 int main()
 {
-	cv::Mat source = cv::imread("img/bayer.bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	cv::Mat result = cv::Mat(source.size(), CV_32FC3);
-
-	cv::imshow("Grayscale", source);
-
-	for (int y = 2; y < result.rows - 2; y++) {
-		for (int x = 2; x < result.cols - 2; x++) {
-			result.at<cv::Vec3f>(y, x) = bayerFilter(source, y, x) / 255.0f;
-		}
-	}
-
-	cv::imshow("Color", result);
-
-	cv::waitKey(0);
-
-	system("PAUSE");
-}
-
-cv::Vec3f bayerFilter(cv::Mat bayer, int col, int row) {
-	uchar R1, R2, R3, R4;
-	uchar G1, G2, G3, G4;
-	uchar B1, B2, B3, B4;
-
-	uchar R, G, B;
-
-	switch (getColorIndex(col, row))
+	switch (Program::HDR_FILTER)
 	{
-		case ColorIndex::B: {
-			R1 = bayer.at<uchar>(col - 1, row - 1);
-			R2 = bayer.at<uchar>(col + 1, row - 1);
-			R3 = bayer.at<uchar>(col + 1, row + 1);
-			R4 = bayer.at<uchar>(col - 1, row + 1);
+		case Program::RGB_TO_YUV: {
+			rgbToYuv = new RGBToYUV();
 
-			G1 = bayer.at<uchar>(col, row - 1);
-			G2 = bayer.at<uchar>(col + 1, row);
-			G3 = bayer.at<uchar>(col, row + 1);
-			G4 = bayer.at<uchar>(col - 1, row);
+			inputs.push_back(cv::imread("img/mountains.jpg", CV_LOAD_IMAGE_COLOR));
+			outputs.push_back(cv::Mat());
+			outputs.push_back(cv::Mat());
+			outputs.push_back(cv::Mat());
 
-			B1 = bayer.at<uchar>(col, row - 2);
-			B2 = bayer.at<uchar>(col + 2, row);
-			B3 = bayer.at<uchar>(col, row + 2);
-			B4 = bayer.at<uchar>(col - 2, row);
+			rgbToYuv->startConversion(inputs.front(), outputs.at(0), outputs.at(1), outputs.at(2));
 
-			R = (R1 + R2 + R3 + R4) / 4;
-			B = bayer.at<uchar>(col, row);
+			cv::imshow("Original", inputs.front());
+			cv::imshow("Transformed Y", outputs.at(0));
+			cv::imshow("Transformed U", outputs.at(1));
+			cv::imshow("Transformed V", outputs.at(2));
 
-			if (std::abs(B1 - B3) < std::abs(B2 - B4)) {
-				G = (G1 + G3) / 2;
-			}
-			else if (std::abs(B1 - B3) > std::abs(B2 - B4)) {
-				G = (G2 + G4) / 2;
-			}
-			else {
-				G = (G1 + G2 + G2 + G4) / 4;
-			}
+			cv::waitKey(0);
+
+			delete rgbToYuv;
 		}
 		break;
-		case ColorIndex::G_1: {
-			R1 = bayer.at<uchar>(col - 1, row);
-			R2 = bayer.at<uchar>(col + 1, row);
+		case Program::BAYER_FILTER: {
+			bayerFilter = new BayerFilter();
 
-			B1 = bayer.at<uchar>(col, row - 1);
-			B2 = bayer.at<uchar>(col, row + 1);
+			inputs.push_back(cv::imread("img/bayer.bmp", CV_LOAD_IMAGE_GRAYSCALE));
+			outputs.push_back(cv::Mat());
 
-			R = (R1 + R2) / 2;
-			B = (B1 + B2) / 2;
-			G = bayer.at<uchar>(col, row);
+			bayerFilter->startFiltration(inputs.front(), outputs.front());
+
+			cv::imshow("Grayscale", inputs.front());
+			cv::imshow("Filtered", outputs.front());
+
+			cv::waitKey(0);
+
+			delete bayerFilter;
 		}
 		break;
-		case ColorIndex::G_2: {
-			R1 = bayer.at<uchar>(col, row - 1);
-			R2 = bayer.at<uchar>(col, row + 1);
+		case Program::HDR_FILTER: 
+		{
+			hdr = new HDR();
 
-			B1 = bayer.at<uchar>(col - 1, row);
-			B2 = bayer.at<uchar>(col + 1, row);
+			inputs.push_back(cv::imread("img/s1_0.png", CV_LOAD_IMAGE_COLOR));
+			inputs.push_back(cv::imread("img/s1_1.png", CV_LOAD_IMAGE_COLOR));
+			inputs.push_back(cv::imread("img/s1_2.png", CV_LOAD_IMAGE_COLOR));
+			inputs.push_back(cv::imread("img/s1_3.png", CV_LOAD_IMAGE_COLOR));
+			inputs.push_back(cv::imread("img/s1_4.png", CV_LOAD_IMAGE_COLOR));
 
-			R = (R1 + R2) / 2;
-			B = (B1 + B2) / 2;
-			G = bayer.at<uchar>(col, row);
-		}
-		break;
-		case ColorIndex::R: {
-			G1 = bayer.at<uchar>(col, row - 1);
-			G2 = bayer.at<uchar>(col + 1, row);
-			G3 = bayer.at<uchar>(col, row + 1);
-			G4 = bayer.at<uchar>(col - 1, row);
+			outputs.push_back(cv::Mat());
 
-			B1 = bayer.at<uchar>(col - 1, row - 1);
-			B2 = bayer.at<uchar>(col + 1, row - 1);
-			B3 = bayer.at<uchar>(col + 1, row + 1);
-			B4 = bayer.at<uchar>(col - 1, row + 1);
+			hdr->calculateHDR(inputs, outputs.front());
 
-			R1 = bayer.at<uchar>(col, row - 2);
-			R2 = bayer.at<uchar>(col + 2, row);
-			R3 = bayer.at<uchar>(col, row + 2);
-			R4 = bayer.at<uchar>(col - 2, row);
+			cv::imshow("S1", inputs.at(0));
+			cv::imshow("S2", inputs.at(1));
+			cv::imshow("S3", inputs.at(2));
+			cv::imshow("S4", inputs.at(3));
+			cv::imshow("S5", inputs.at(4));
 
-			R = bayer.at<uchar>(col, row);
+			cv::imshow("HDR", outputs.front());
+			
+			cv::waitKey(0);
 
-			if (std::abs(R1 - R3) < std::abs(R2 - R4)) {
-				G = (G1 + G3) / 2;
-			}
-			else if (std::abs(R1 - R3) > std::abs(R2 - R4)) {
-				G = (G2 + G4) / 2;
-			}
-			else {
-				G = (G1 + G2 + G3 + G4) / 4;
-			}
-
-			B = (B1 + B2 + B3 + B4) / 4;
+			delete hdr;
 		}
 		break;
 	}
-
-	return cv::Vec3f(B, G, R);
-}
-
-ColorIndex getColorIndex(int col, int row) {
-	if (row % 2 == 0 && col % 2 == 0) {
-		return ColorIndex::R;
-	}
-	else if (row % 2 == 0 && col % 2 == 1) {
-		return ColorIndex::G_1;
-	}
-	else if (row % 2 == 1 && col % 2 == 0) {
-		return ColorIndex::G_2;
-	}
-	else {
-		return ColorIndex::B;
-	}
-
-	return ColorIndex::NONE;
 }
