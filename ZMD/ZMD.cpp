@@ -14,7 +14,7 @@ HDR *hdr = nullptr;
 
 int main()
 {
-	switch (Program::RGB_TO_YUV)
+	switch (Program::HDR_FILTER)
 	{
 		case Program::RGB_TO_YUV: {
 			rgbToYuv = new RGBToYUV();
@@ -26,10 +26,22 @@ int main()
 
 			rgbToYuv->startConversion(inputs.front(), outputs.at(0), outputs.at(1), outputs.at(2));
 
-			cv::imshow("Original", inputs.front());
-			cv::imshow("Transformed Y", outputs.at(0));
-			cv::imshow("Transformed U", outputs.at(1));
-			cv::imshow("Transformed V", outputs.at(2));
+			std::string windowNames[] = { "Original", "Transformed Y", "Transformed U", "Transformed V" };
+
+			cv::namedWindow(windowNames[0]);
+			cv::namedWindow(windowNames[1]);
+			cv::namedWindow(windowNames[2]);
+			cv::namedWindow(windowNames[3]);
+
+			cv::moveWindow(windowNames[0], 0 * inputs.at(0).cols, 0 * inputs.at(0).rows);
+			cv::moveWindow(windowNames[1], 1 * outputs.at(0).cols, 0 * outputs.at(0).rows);
+			cv::moveWindow(windowNames[2], 2 * outputs.at(1).cols, 0 * outputs.at(1).rows);
+			cv::moveWindow(windowNames[3], 3 * outputs.at(2).cols, 0 * outputs.at(2).rows);
+
+			cv::imshow(windowNames[0], inputs.front());
+			cv::imshow(windowNames[1], outputs.at(0));
+			cv::imshow(windowNames[2], outputs.at(1));
+			cv::imshow(windowNames[3], outputs.at(2));
 
 			cv::waitKey(0);
 
@@ -44,8 +56,16 @@ int main()
 
 			bayerFilter->startFiltration(inputs.front(), outputs.front());
 
-			cv::imshow("Grayscale", inputs.front());
-			cv::imshow("Filtered", outputs.front());
+			std::string windowNames[] = { "Grayscale", "Filtered" };
+
+			cv::namedWindow(windowNames[0]);
+			cv::namedWindow(windowNames[1]);
+
+			cv::moveWindow(windowNames[0], 0 * inputs.at(0).cols, 0 * inputs.at(0).rows);
+			cv::moveWindow(windowNames[1], 1 * outputs.at(0).cols, 0 * outputs.at(0).rows);
+
+			cv::imshow(windowNames[0], inputs.front());
+			cv::imshow(windowNames[1], outputs.front());
 
 			cv::waitKey(0);
 
@@ -66,13 +86,28 @@ int main()
 
 			hdr->calculateHDR(inputs, outputs.front());
 
-			cv::imshow("S1", inputs.at(0));
-			cv::imshow("S2", inputs.at(1));
-			cv::imshow("S3", inputs.at(2));
-			cv::imshow("S4", inputs.at(3));
-			cv::imshow("S5", inputs.at(4));
+			std::string windowNames[] = { "S1", "S2", "S3", "S4", "S5", "HDR" };
 
-			cv::imshow("HDR", outputs.front());
+			cv::namedWindow(windowNames[0]);
+			cv::namedWindow(windowNames[1]);
+			cv::namedWindow(windowNames[2]);
+			cv::namedWindow(windowNames[3]);
+			cv::namedWindow(windowNames[4]);
+			cv::namedWindow(windowNames[5]);
+
+			cv::moveWindow(windowNames[0], 0 * inputs.at(0).cols, 0 * inputs.at(0).rows);
+			cv::moveWindow(windowNames[1], 1 * inputs.at(1).cols, 0 * inputs.at(1).rows);
+			cv::moveWindow(windowNames[2], 2 * inputs.at(2).cols, 0 * inputs.at(2).rows);
+			cv::moveWindow(windowNames[3], 3 * inputs.at(3).cols, 0 * inputs.at(3).rows);
+			cv::moveWindow(windowNames[4], 4 * inputs.at(4).cols, 0 * inputs.at(4).rows);
+			cv::moveWindow(windowNames[5], 2 * inputs.at(2).cols, 1 * inputs.at(2).rows + 50);
+
+			cv::imshow(windowNames[0], inputs.at(0));
+			cv::imshow(windowNames[1], inputs.at(1));
+			cv::imshow(windowNames[2], inputs.at(2));
+			cv::imshow(windowNames[3], inputs.at(3));
+			cv::imshow(windowNames[4], inputs.at(4));
+			cv::imshow(windowNames[5], outputs.front());
 			
 			cv::waitKey(0);
 

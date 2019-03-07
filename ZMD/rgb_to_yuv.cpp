@@ -8,17 +8,17 @@ const void RGBToYUV::startConversion(cv::Mat source, cv::Mat &destinationY, cv::
 	destinationU = cv::Mat(source.size(), source.type());
 	destinationV = cv::Mat(source.size(), source.type());
 
-	for (int y = 0; y < source.rows; y++) {
-		for (int x = 0; x < source.cols; x++) {
-			cv::Mat transformedValue = m_yuvTransformationMatrix * (cv::Mat)source.at<cv::Vec3f>(y, x);
+	source.forEach<cv::Vec3f>([&](cv::Vec3f &pixel, const int *position) {
+		int y = position[0], x = position[1];
 
-			float Y = (transformedValue.at<float>(0, 0) / 255.0f);
-			float V = (transformedValue.at<float>(1, 0) / 255.0f);
-			float U = (transformedValue.at<float>(2, 0) / 255.0f);
+		cv::Mat transformedValue = m_yuvTransformationMatrix * (cv::Mat)pixel;
 
-			destinationY.at<cv::Vec3f>(y, x) = cv::Vec3f(Y, Y, Y);
-			destinationU.at<cv::Vec3f>(y, x) = cv::Vec3f(0.5f + U, 0.5f - U, 0);
-			destinationV.at<cv::Vec3f>(y, x) = cv::Vec3f(0, 0.5f - V, 0.5f + V);
-		}
-	}
+		float Y = (transformedValue.at<float>(0, 0) / 255.0f);
+		float V = (transformedValue.at<float>(1, 0) / 255.0f);
+		float U = (transformedValue.at<float>(2, 0) / 255.0f);
+
+		destinationY.at<cv::Vec3f>(y, x) = cv::Vec3f(Y, Y, Y);
+		destinationU.at<cv::Vec3f>(y, x) = cv::Vec3f(0.5f + U, 0.5f - U, 0);
+		destinationV.at<cv::Vec3f>(y, x) = cv::Vec3f(0, 0.5f - V, 0.5f + V);
+	});
 }

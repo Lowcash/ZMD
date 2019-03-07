@@ -112,7 +112,7 @@ const ColorIndex BayerFilter::getColorIndex(const int col, const int row) {
 }
 
 const void BayerFilter::startFiltration(cv::Mat source, cv::Mat &destination) {
-	destination = cv::Mat(source.size(), CV_32FC3);
+	destination = cv::Mat::zeros(source.size(), CV_32FC3);
 
 	for (int y = 2; y < destination.rows - 2; y++) {
 		for (int x = 2; x < destination.cols - 2; x++) {
