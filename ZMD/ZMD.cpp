@@ -26,6 +26,8 @@ int main()
 
 			rgbToYuv->startConversion(inputs.front(), outputs.at(0), outputs.at(1), outputs.at(2));
 
+			delete rgbToYuv;
+
 			std::string windowNames[] = { "Original", "Transformed Y", "Transformed U", "Transformed V" };
 
 			cv::namedWindow(windowNames[0]);
@@ -44,8 +46,6 @@ int main()
 			cv::imshow(windowNames[3], outputs.at(2));
 
 			cv::waitKey(0);
-
-			delete rgbToYuv;
 		}
 		break;
 		case Program::BAYER_FILTER: {
@@ -55,6 +55,8 @@ int main()
 			outputs.push_back(cv::Mat());
 
 			bayerFilter->startFiltration(inputs.front(), outputs.front());
+
+			delete bayerFilter;
 
 			std::string windowNames[] = { "Grayscale", "Filtered" };
 
@@ -68,8 +70,6 @@ int main()
 			cv::imshow(windowNames[1], outputs.front());
 
 			cv::waitKey(0);
-
-			delete bayerFilter;
 		}
 		break;
 		case Program::HDR_FILTER: 
@@ -85,6 +85,8 @@ int main()
 			outputs.push_back(cv::Mat());
 
 			hdr->calculateHDR(inputs, outputs.front());
+
+			delete hdr;
 
 			std::string windowNames[] = { "S1", "S2", "S3", "S4", "S5", "HDR" };
 
@@ -110,8 +112,6 @@ int main()
 			cv::imshow(windowNames[5], outputs.front());
 			
 			cv::waitKey(0);
-
-			delete hdr;
 		}
 		break;
 	}

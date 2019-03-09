@@ -1,51 +1,44 @@
 #include "pch.h"
 #include "hdr.h"
 
-const cv::Vec3f HDR::getWk(cv::Vec3f Ik) {
-	cv::Vec3f upper(
-		std::pow(Ik.val[0] - m_mi * 255.0f, 2),
-		std::pow(Ik.val[1] - m_mi * 255.0f, 2),
-		std::pow(Ik.val[2] - m_mi * 255.0f, 2)
-	);
-
-	float downer = std::pow(2 * (m_sigma * 255.0f), 2);
-	
-	cv::Vec3f beforeNormalization(
-		std::exp(-(upper[0] / downer)),
-		std::exp(-(upper[1] / downer)),
-		std::exp(-(upper[2] / downer))
-	);
-
-	float sum = beforeNormalization.val[0] + beforeNormalization.val[1] + beforeNormalization.val[2];
-	
-	return beforeNormalization / sum;
+const float HDR::getWk(float Ik) {
+	return std::exp(-(std::pow(Ik - m_mi * 255.0f, 2) / (2 * std::pow(m_sigma * 255.0f, 2))));
 }
 
-const cv::Mat HDR::getR(std::vector<cv::Mat> source) {
-	cv::Mat result(source.at(0).size(), source.at(0).type());
+const cv::Mat HDR::getR(std::vector<cv::Mat> source, std::vector<cv::Mat> sourceGrayscale) {
+	cv::Mat result = cv::Mat::zeros(cv::Size(source.at(0).cols, source.at(0).rows), source.at(0).type());
 
-	result.forEach<cv::Vec3f>([&](cv::Vec3f &pixel, const int *position) {
+	result.forEach<cv::Vec3b>([&](cv::Vec3b &pixel, const int *position) {
 		int y = position[0], x = position[1];
 
-		for (int i = 0; i < source.size(); i++) {
-			cv::Vec3f sourceColor = source[i].at<cv::Vec3f>(y, x);
-			cv::Vec3f Wk = getWk(sourceColor);
+		float sum = 0;
+		std::vector<float> Wks;
+		cv::Vec3b R;
 
-			result.at<cv::Vec3f>(y, x) += cv::Vec3f(
-				Wk.val[0] * sourceColor.val[0],
-				Wk.val[1] * sourceColor.val[1],
-				Wk.val[2] * sourceColor.val[2]
-			);
+		for (int i = 0; i < sourceGrayscale.size(); i++) {
+			Wks.push_back(getWk(sourceGrayscale.at(i).at<float>(y, x)));
+			sum += Wks.at(i);
 		}
+
+		for (int i = 0; i < source.size(); i++) {
+			Wks.at(i) /= sum;
+
+			R += Wks.at(i) * source.at(i).at<cv::Vec3b>(y, x);
+		}
+
+		result.at<cv::Vec3b>(y, x) = R;
 	});
 
-	return result / 255.0f;
+	return result;
 }
 
 const void HDR::calculateHDR(std::vector<cv::Mat> source, cv::Mat &destination) {
+	std::vector<cv::Mat> sourceGrayscale(source);
+
 	for (int i = 0; i < source.size(); i++) {
-		source.at(i).convertTo(source.at(i), CV_32FC3);
+		cv::cvtColor(sourceGrayscale.at(i), sourceGrayscale.at(i), CV_BGR2GRAY);
+		sourceGrayscale.at(i).convertTo(sourceGrayscale.at(i), CV_32FC1);
 	}
 
-	destination = getR(source);
+	destination = getR(source, sourceGrayscale);
 }
