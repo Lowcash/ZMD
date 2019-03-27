@@ -3,7 +3,7 @@
 #include "rgb_to_yuv.h"
 #include "hdr.h"
 
-const enum Program { RGB_TO_YUV, BAYER_FILTER, HDR_FILTER };
+const enum Program { RGB_TO_YUV, BAYER_FILTER, HDR_FILTER, MOSAIK_VID };
 
 std::vector<cv::Mat> inputs;
 std::vector<cv::Mat> outputs;
@@ -12,11 +12,11 @@ BayerFilter *bayerFilter = nullptr;
 RGBToYUV *rgbToYuv = nullptr;
 HDR *hdr = nullptr;
 
-int main()
+int main(int argc, char *argv[])
 {
-	switch (Program::HDR_FILTER)
-	{
-		case Program::RGB_TO_YUV: {
+	switch(Program::MOSAIK_VID) {
+		case Program::RGB_TO_YUV:
+		{
 			rgbToYuv = new RGBToYUV();
 
 			inputs.push_back(cv::imread("img/mountains.jpg", CV_LOAD_IMAGE_COLOR));
@@ -48,7 +48,8 @@ int main()
 			cv::waitKey(0);
 		}
 		break;
-		case Program::BAYER_FILTER: {
+		case Program::BAYER_FILTER:
+		{
 			bayerFilter = new BayerFilter();
 
 			inputs.push_back(cv::imread("img/bayer.bmp", CV_LOAD_IMAGE_GRAYSCALE));
@@ -72,7 +73,7 @@ int main()
 			cv::waitKey(0);
 		}
 		break;
-		case Program::HDR_FILTER: 
+		case Program::HDR_FILTER:
 		{
 			hdr = new HDR();
 
@@ -110,8 +111,65 @@ int main()
 			cv::imshow(windowNames[3], inputs.at(3));
 			cv::imshow(windowNames[4], inputs.at(4));
 			cv::imshow(windowNames[5], outputs.front());
-			
+
 			cv::waitKey(0);
+		}
+		break;
+		case Program::MOSAIK_VID:
+		{
+			if(argc != 6) {
+				printf("Not enought arguments\n");
+				exit(1);
+			}
+
+			std::string videoPath = argv[1];
+			int gridXSize = atoi(argv[2]);
+			int gridYSize = atoi(argv[3]);
+			int resolutionX = atoi(argv[4]);
+			int resolutionY = atoi(argv[5]);
+
+			cv::VideoCapture cap(videoPath);
+			
+			if(!cap.isOpened()) {
+				printf("Error opening video stream or file");
+				exit(1);
+			}
+
+			int numFrames = (int)cap.get(CV_CAP_PROP_FRAME_COUNT);
+			int frameOffset = numFrames / (gridXSize * gridYSize);
+
+			cv::Mat frame;
+			cap >> frame;
+
+			cv::Mat outputFrame = cv::Mat::zeros(cv::Size(resolutionX, resolutionY), frame.type());
+			for(int i = 0; i < frameOffset; i++) {
+				for(int j = 0; j < gridXSize * gridYSize; j++) {
+					cap.set(CV_CAP_PROP_POS_FRAMES, i + j * frameOffset);
+					cap >> frame;
+
+					cv::resize(frame, frame, cv::Size(resolutionX / gridXSize, resolutionY / gridYSize));
+					
+					int outputFrameOffsetX = (j % gridXSize);
+					int outputFrameOffsetY = (j / gridYSize);
+
+					frame.forEach<cv::Vec3b>([&](cv::Vec3b &pixel, const int *position) {
+						int y = position[0], x = position[1];
+
+						outputFrame.at<cv::Vec3b>(y + (outputFrameOffsetY * frame.rows), x + (outputFrameOffsetX * frame.cols)) = frame.at<cv::Vec3b>(y, x);
+					});
+				}
+
+				if(frame.empty()) { break; }
+
+				cv::imshow(videoPath, outputFrame);
+				
+				char c = (char)cv::waitKey(25);
+				if(c == 27) { break; }
+			}
+
+			cap.release();
+
+			cv::destroyAllWindows();
 		}
 		break;
 	}
